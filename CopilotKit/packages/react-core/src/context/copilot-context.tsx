@@ -5,7 +5,7 @@ import {
   ToolDefinition,
 } from "@copilotkit/shared";
 import { ActionRenderProps, FrontendAction } from "../types/frontend-action";
-import React, { Ref } from "react";
+import React from "react";
 import { TreeNodeId } from "../hooks/use-tree";
 import { DocumentPointer } from "../types";
 
@@ -27,6 +27,16 @@ export interface CopilotApiConfig {
    * The endpoint for the chat API.
    */
   chatApiEndpoint: string;
+
+  /**
+   * The endpoint for the Copilot transcribe audio service.
+   */
+  transcribeAudioUrl?: string;
+
+  /**
+   * The endpoint for the Copilot text to speech service.
+   */
+  textToSpeechUrl?: string;
 
   /**
    * The endpoint for the chat API v2.

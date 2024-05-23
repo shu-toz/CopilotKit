@@ -1,3 +1,103 @@
+/**
+ * Handles requests from frontend, provides function calling and various LLM backends.
+ *
+ * <img
+ *   referrerPolicy="no-referrer-when-downgrade"
+ *   src="https://static.scarf.sh/a.png?x-pxid=a9b290bb-38f9-4518-ac3b-8f54fdbf43be"
+ * />
+ *
+ * <RequestExample>
+ *   ```jsx CopilotRuntime Example
+ *   import {
+ *     CopilotRuntime,
+ *     OpenAIAdapter
+ *   } from "@copilotkit/backend";
+ *
+ *   export async function POST(req: Request) {
+ *     const copilotKit = new CopilotRuntime();
+ *     return copilotKit.response(req, new OpenAIAdapter());
+ *   }
+ *
+ * ```
+ * </RequestExample>
+ *
+ * This class is the main entry point for the runtime. It handles requests from the frontend, provides function calling and various LLM backends.
+ *
+ * For example, to use OpenAI as a backend (check the [OpenAI Adapter](./OpenAIAdapter) docs for more info):
+ * ```typescript
+ * const copilotKit = new CopilotRuntime();
+ * return copilotKit.response(req, new OpenAIAdapter());
+ * ```
+ *
+ * Currently we support:
+ *
+ * - [OpenAI](./OpenAIAdapter)
+ * - [LangChain](./LangChainAdapter)
+ * - [OpenAI Assistant API](./OpenAIAssistantAdapter)
+ * - [Google Gemini](./GoogleGenerativeAIAdapter)
+ *
+ * ## Server Side Actions
+ *
+ * CopilotKit supports actions that can be executed on the server side. You can define server side actions by passing the `actions` parameter:
+ *
+ * ```typescript
+ * const copilotKit = new CopilotRuntime({
+ *   actions: [
+ *     {
+ *       name: "sayHello",
+ *       description: "Says hello to someone.",
+ *       argumentAnnotations: [
+ *         {
+ *           name: "arg",
+ *           type: "string",
+ *           description: "The name of the person to say hello to.",
+ *           required: true,
+ *         },
+ *       ],
+ *       implementation: async (arg) => {
+ *         console.log("Hello from the server", arg, "!");
+ *       },
+ *     },
+ *   ],
+ * });
+ * ```
+ *
+ * Server side actions can also return a result which becomes part of the message history.
+ *
+ * This is useful because it gives the LLM context about what happened on the server side. In addition,
+ * it can be used to look up information from a vector or relational database and other sources.
+ *
+ * In addition to that, server side actions can also come from LangChain, including support for streaming responses.
+ *
+ * Returned results can be of the following type:
+ *
+ * - anything serializable to JSON
+ * - `string`
+ * - LangChain types:
+ *   - `IterableReadableStream`
+ *   - `BaseMessageChunk`
+ *   - `AIMessage`
+ *
+ * ## LangServe
+ *
+ * The backend also supports LangServe, enabling you to connect to existing chains, for example python based chains.
+ * Use the `langserve` parameter to specify URLs for LangServe.
+ *
+ * ```typescript
+ * const copilotKit = new CopilotRuntime({
+ *   langserve: [
+ *     {
+ *       chainUrl: "http://my-langserve.chain",
+ *       name: "performResearch",
+ *       description: "Performs research on a given topic.",
+ *     },
+ *   ],
+ * });
+ * ```
+ *
+ * When left out, arguments are automatically inferred from the schema provided by LangServe.
+ */
+
 import {
   Action,
   ToolDefinition,
@@ -23,8 +123,16 @@ interface CopilotRuntimeResult {
 }
 
 interface CopilotRuntimeConstructorParams<T extends Parameter[] | [] = []> {
+  /*
+   * A list of server side actions that can be executed.
+   */
   actions?: Action<T>[];
+
+  /*
+   * An array of LangServer URLs.
+   */
   langserve?: RemoteChain[];
+
   debug?: boolean;
   copilotCloud?: CopilotCloud;
 }
@@ -163,6 +271,12 @@ export class CopilotRuntime<const T extends Parameter[] | [] = []> {
     }
   }
 
+  /**
+   * Returns a `Response` object for streaming back the result to the client
+   *
+   * @param req The HTTP request
+   * @param serviceAdapter The adapter to use for the response.
+   */
   async response(req: Request, serviceAdapter: CopilotKitServiceAdapter): Promise<Response> {
     const publicApiKey = req.headers.get(COPILOT_CLOUD_PUBLIC_API_KEY_HEADER) || undefined;
     try {
@@ -174,6 +288,15 @@ export class CopilotRuntime<const T extends Parameter[] | [] = []> {
     }
   }
 
+  /**
+   * Streams messages back to the client using the HTTP response object. Use with express,
+or Node.js HTTP server.
+    *
+    * @param req The HTTP request
+    * @param res The HTTP response
+    * @param serviceAdapter The adapter to use for the response.
+    * @param headers Additional headers to send with the response.
+    */
   async streamHttpServerResponse(
     req: any,
     res: any,

@@ -1,11 +1,52 @@
+/**
+ * CopilotRuntime Adapter for OpenAI.
+ *
+ * <RequestExample>
+ * ```jsx CopilotRuntime Example
+ * const copilotKit = new CopilotRuntime();
+ * return copilotKit.response(req, new OpenAIAdapter());
+ * ```
+ * </RequestExample>
+ *
+ * You can easily set the model to use by passing it to the constructor.
+ * ```jsx
+ * const copilotKit = new CopilotRuntime();
+ * return copilotKit.response(
+ *   req,
+ *   new OpenAIAdapter({ model: "gpt-4o" }),
+ * );
+ * ```
+ *
+ * To use your custom OpenAI instance, pass the `openai` property.
+ * ```jsx
+ * const openai = new OpenAI({
+ *   organization: "your-organization-id",
+ *   apiKey: "your-api-key"
+ * });
+ *
+ * const copilotKit = new CopilotRuntime();
+ * return copilotKit.response(
+ *   req,
+ *   new OpenAIAdapter({ openai }),
+ * );
+ * ```
+ *
+ */
 import OpenAI from "openai";
 import { CopilotKitResponse, CopilotKitServiceAdapter } from "../types/service-adapter";
 import { limitOpenAIMessagesToTokenCount, maxTokensForOpenAIModel } from "../utils/openai";
 
-const DEFAULT_MODEL = "gpt-4-1106-preview";
+const DEFAULT_MODEL = "gpt-4o";
 
 export interface OpenAIAdapterParams {
+  /**
+   * An optional OpenAI instance to use.
+   */
   openai?: OpenAI;
+
+  /**
+   * The model to use.
+   */
   model?: string;
 }
 
